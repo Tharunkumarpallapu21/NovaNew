@@ -1,7 +1,24 @@
 import { useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { IssueType, Poi, Purpose, RouteOption, Screen, TravelerContext } from "@/lib/domain/models";
+import type {
+  IssueType,
+  Poi,
+  Purpose,
+  RouteOption,
+  Screen,
+  TravelerContext,
+} from "@/lib/domain/models";
 import { DEMO_DATA_LABEL } from "@/lib/data/mockData";
 import type { useContextRouteViewModel } from "@/hooks/use-context-route-view-model";
 
@@ -14,80 +31,1752 @@ const muted = "#6B7C93";
 const line = "#D8E5F2";
 
 export function ContextRouteApp({ vm }: { vm: VM }) {
-  const [dark, setDark] = useState(vm.settings.darkMode);
-  const colors = dark ? { bg: "#0B1626", card: "#14263D", ink: "#F5F9FE", muted: "#AFC3DA", line: "#29435D" } : { bg, card: "#FFFFFF", ink, muted, line };
+  const dark = vm.settings.darkMode;
+  const colors = dark
+    ? {
+        bg: "#0B1626",
+        card: "#14263D",
+        ink: "#F5F9FE",
+        muted: "#AFC3DA",
+        line: "#29435D",
+      }
+    : { bg, card: "#FFFFFF", ink, muted, line };
   const theme = { ...colors, blue, teal };
-  if (vm.onboarding) return <Onboarding vm={vm} onFinish={() => vm.setOnboarding(false)} theme={theme} />;
-  return <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}><View style={styles.app}><Header vm={vm} theme={theme} onEmergency={() => { vm.choosePurpose("EMERGENCY"); vm.go("routes"); void vm.calculateRoutes(); }} />
-    {vm.offline && <StateBanner text="You're offline · showing cached data" tone="amber" onPress={() => vm.setOffline(false)} theme={theme} />}
-    {vm.screen === "planner" && <Planner vm={vm} theme={theme} />}
-    {vm.screen === "routes" && <Routes vm={vm} theme={theme} />}
-    {vm.screen === "navigate" && <Navigate vm={vm} theme={theme} />}
-    {vm.screen === "explore" && <Explore vm={vm} theme={theme} />}
-    {vm.screen === "reports" && <Reports vm={vm} theme={theme} />}
-    {vm.screen === "saved" && <Saved vm={vm} theme={theme} />}
-    {vm.screen === "profile" && <Profile vm={vm} theme={theme} dark={dark} setDark={setDark} />}
-    <BottomNav screen={vm.screen} go={vm.go} theme={theme} />
-    <PermissionModal visible={vm.permissionVisible} onAllow={() => vm.requestLocation(true)} onDeny={() => vm.requestLocation(false)} theme={theme} />
-  </View></SafeAreaView>;
+  if (vm.onboarding)
+    return (
+      <Onboarding
+        vm={vm}
+        onFinish={() => vm.setOnboarding(false)}
+        theme={theme}
+      />
+    );
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
+      <View style={styles.app}>
+        <Header
+          vm={vm}
+          theme={theme}
+          onEmergency={() => {
+            void vm.calculateEmergencyRoutes();
+          }}
+        />
+        {vm.offline && (
+          <StateBanner
+            text="You're offline · showing cached data"
+            tone="amber"
+            onPress={() => vm.setOffline(false)}
+            theme={theme}
+          />
+        )}
+        {vm.screen === "planner" && <Planner vm={vm} theme={theme} />}
+        {vm.screen === "routes" && <Routes vm={vm} theme={theme} />}
+        {vm.screen === "navigate" && <Navigate vm={vm} theme={theme} />}
+        {vm.screen === "explore" && <Explore vm={vm} theme={theme} />}
+        {vm.screen === "reports" && <Reports vm={vm} theme={theme} />}
+        {vm.screen === "saved" && <Saved vm={vm} theme={theme} />}
+        {vm.screen === "profile" && (
+          <Profile
+            vm={vm}
+            theme={theme}
+            dark={dark}
+            setDark={(value) => vm.updateSettings({ darkMode: value })}
+          />
+        )}
+        <BottomNav screen={vm.screen} go={vm.go} theme={theme} />
+        <PermissionModal
+          visible={vm.permissionVisible}
+          onAllow={() => vm.requestLocation(true)}
+          onDeny={() => vm.requestLocation(false)}
+          theme={theme}
+        />
+      </View>
+    </SafeAreaView>
+  );
 }
 
-function Onboarding({ vm, onFinish, theme }: { vm: VM; onFinish: () => void; theme: any }) {
+function Onboarding({
+  vm,
+  onFinish,
+  theme,
+}: {
+  vm: VM;
+  onFinish: () => void;
+  theme: any;
+}) {
   const [page, setPage] = useState(0);
   const pages = [
-    ["Smarter routes", "Personalized route recommendations based on your travel context, safety needs and preferences."],
-    ["Your journey, your context", "Tell us who you travel with and what matters most so the route fits your real journey."],
-    ["Safety & accessibility first", "Better road conditions, fewer hazards and more accessible options for vulnerable travelers."],
+    [
+      "Smarter routes",
+      "Personalized route recommendations based on your travel context, safety needs and preferences.",
+    ],
+    [
+      "Your journey, your context",
+      "Tell us who you travel with and what matters most so the route fits your real journey.",
+    ],
+    [
+      "Safety & accessibility first",
+      "Better road conditions, fewer hazards and more accessible options for vulnerable travelers.",
+    ],
   ];
-  return <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}><View style={styles.onboarding}><View style={styles.logoMark}><Text style={styles.logoPin}>⌖</Text></View><Text style={[styles.brand, { color: theme.ink }]}>ContextRoute AI</Text><Text style={[styles.tagline, { color: theme.muted }]}>Personalized · Safer · Smarter Travel</Text><View style={[styles.illustration, { backgroundColor: theme.card, borderColor: theme.line }]}><Text style={{ fontSize: 70 }}>{page === 0 ? "🛣️" : page === 1 ? "🧳" : "🛡️"}</Text><Text style={[styles.heroTitle, { color: theme.ink }]}>{pages[page][0]}</Text><Text style={[styles.body, { color: theme.muted }]}>{pages[page][1]}</Text></View><View style={styles.dots}>{pages.map((_, i) => <View key={i} style={[styles.dot, { backgroundColor: i === page ? blue : theme.line }]} />)}</View><Button title={page === 2 ? "Get started" : "Next"} onPress={() => page === 2 ? onFinish() : setPage(page + 1)} /><Pressable onPress={onFinish} style={styles.linkButton}><Text style={[styles.link, { color: theme.muted }]}>Skip</Text></Pressable></View></SafeAreaView>;
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
+      <View style={styles.onboarding}>
+        <View style={styles.logoMark}>
+          <Text style={styles.logoPin}>⌖</Text>
+        </View>
+        <Text style={[styles.brand, { color: theme.ink }]}>
+          ContextRoute AI
+        </Text>
+        <Text style={[styles.tagline, { color: theme.muted }]}>
+          Personalized · Safer · Smarter Travel
+        </Text>
+        <View
+          style={[
+            styles.illustration,
+            { backgroundColor: theme.card, borderColor: theme.line },
+          ]}
+        >
+          <Text style={{ fontSize: 70 }}>
+            {page === 0 ? "🛣️" : page === 1 ? "🧳" : "🛡️"}
+          </Text>
+          <Text style={[styles.heroTitle, { color: theme.ink }]}>
+            {pages[page][0]}
+          </Text>
+          <Text style={[styles.body, { color: theme.muted }]}>
+            {pages[page][1]}
+          </Text>
+        </View>
+        <View style={styles.dots}>
+          {pages.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                { backgroundColor: i === page ? blue : theme.line },
+              ]}
+            />
+          ))}
+        </View>
+        <Button
+          title={page === 2 ? "Get started" : "Next"}
+          onPress={() => (page === 2 ? onFinish() : setPage(page + 1))}
+        />
+        <Pressable onPress={onFinish} style={styles.linkButton}>
+          <Text style={[styles.link, { color: theme.muted }]}>Skip</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
 }
 
-function Header({ vm, theme, onEmergency }: { vm: VM; theme: any; onEmergency: () => void }) {
-  return <View style={[styles.header, { borderBottomColor: theme.line }]}><View><Text style={[styles.headerBrand, { color: theme.ink }]}>ContextRoute <Text style={{ color: blue }}>AI</Text></Text><Text style={[styles.headerSub, { color: theme.muted }]}>Safer journeys, greater possibilities</Text></View><Pressable onPress={onEmergency} style={styles.emergencyMini}><Text style={styles.emergencyMiniText}>SOS</Text></Pressable></View>;
+function Header({
+  vm,
+  theme,
+  onEmergency,
+}: {
+  vm: VM;
+  theme: any;
+  onEmergency: () => void;
+}) {
+  return (
+    <View style={[styles.header, { borderBottomColor: theme.line }]}>
+      <View>
+        <Text style={[styles.headerBrand, { color: theme.ink }]}>
+          ContextRoute <Text style={{ color: blue }}>AI</Text>
+        </Text>
+        <Text style={[styles.headerSub, { color: theme.muted }]}>
+          Safer journeys, greater possibilities
+        </Text>
+      </View>
+      <Pressable onPress={onEmergency} style={styles.emergencyMini}>
+        <Text style={styles.emergencyMiniText}>SOS</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 function Planner({ vm, theme }: { vm: VM; theme: any }) {
   const [advanced, setAdvanced] = useState(false);
-  const purposeLabels: [Purpose, string, string][] = [["COMMUTE", "General travel", "Daily commute"], ["VULNERABLE", "Vulnerable care", "Family & accessibility"], ["EMERGENCY", "Medical emergency", "Urgent patient route"], ["TOURISM", "Tourism", "Attractions and places"], ["RELIGIOUS", "Pilgrimage", "Temples and heritage"]];
-  return <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}><Text style={[styles.kicker, { color: blue }]}>PLAN A JOURNEY</Text><Text style={[styles.title, { color: theme.ink }]}>Where are you going?</Text><Text style={[styles.body, { color: theme.muted }]}>Context-aware recommendations for safer travel.</Text><View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}><Field label="From" value={vm.origin} onChangeText={vm.setOrigin} theme={theme} icon="●" /><View style={[styles.fieldDivider, { backgroundColor: theme.line }]} /><Field label="To" value={vm.destination} onChangeText={vm.setDestination} theme={theme} icon="◆" /><Text style={[styles.helper, { color: theme.muted }]}>Demo places · live geocoding provider not configured</Text></View><SectionTitle title="Travel purpose" theme={theme} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>{purposeLabels.map(([id, label, sub]) => <ChoiceCard key={id} active={vm.context.purpose === id} icon={id === "EMERGENCY" ? "♥" : id === "RELIGIOUS" ? "✦" : id === "TOURISM" ? "◇" : id === "VULNERABLE" ? "♧" : "●"} title={label} subtitle={sub} onPress={() => vm.choosePurpose(id)} theme={theme} />)}</ScrollView><SectionTitle title="Additional requirements" theme={theme} /><View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}>{([ ["senior", "Senior citizens", "Comfort and accessible stops"], ["pregnant", "Pregnant traveler", "Anti-jolt road preference"], ["patient", "Urgent medical assistance", "Hospital corridor proximity"], ["children", "Children / family group", "Family-friendly rest stops"], ["wheelchair", "Mobility access", "Wheelchair-friendly POIs"]] as const).map(([key, label, sub]) => <ToggleRow key={key} label={label} subtitle={sub} value={vm.context.requirements[key]} onValueChange={() => vm.toggleRequirement(key)} theme={theme} />)}</View><Pressable onPress={() => setAdvanced(!advanced)} style={styles.advanced}><Text style={[styles.sectionTitle, { color: theme.ink }]}>Advanced preferences</Text><Text style={{ color: blue, fontWeight: "700" }}>{advanced ? "Hide" : "Edit"}</Text></Pressable>{advanced && <WeightCard context={vm.context} theme={theme} />}<Button title={vm.busy ? "Evaluating routes…" : "Find context-aware routes"} onPress={() => void vm.calculateRoutes()} disabled={vm.busy} /><Text style={[styles.demoLabel, { color: theme.muted }]}>{DEMO_DATA_LABEL}</Text>{vm.error && <StateBanner text={vm.error} tone="red" onPress={() => vm.setError(null)} theme={theme} />}</ScrollView>;
+  const purposeLabels: [Purpose, string, string][] = [
+    ["COMMUTE", "General travel", "Daily commute"],
+    ["VULNERABLE", "Vulnerable care", "Family & accessibility"],
+    ["EMERGENCY", "Medical emergency", "Urgent patient route"],
+    ["TOURISM", "Tourism", "Attractions and places"],
+    ["RELIGIOUS", "Pilgrimage", "Temples and heritage"],
+  ];
+  return (
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.kicker, { color: blue }]}>PLAN A JOURNEY</Text>
+      <Text style={[styles.title, { color: theme.ink }]}>
+        Where are you going?
+      </Text>
+      <Text style={[styles.body, { color: theme.muted }]}>
+        Context-aware recommendations for safer travel.
+      </Text>
+      {vm.settings.locationPermission === "denied" && (
+        <StateBanner
+          text="Location permission denied · using selected places"
+          tone="amber"
+          onPress={() => vm.setPermissionVisible(true)}
+          theme={theme}
+        />
+      )}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.card, borderColor: theme.line },
+        ]}
+      >
+        <Field
+          label="From"
+          value={vm.origin}
+          onChangeText={vm.setOrigin}
+          theme={theme}
+          icon="●"
+        />
+        <View style={[styles.fieldDivider, { backgroundColor: theme.line }]} />
+        <Field
+          label="To"
+          value={vm.destination}
+          onChangeText={vm.setDestination}
+          theme={theme}
+          icon="◆"
+        />
+        <Text style={[styles.helper, { color: theme.muted }]}>
+          Demo places · live geocoding provider not configured
+        </Text>
+      </View>
+      <SectionTitle title="Travel purpose" theme={theme} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontal}
+      >
+        {purposeLabels.map(([id, label, sub]) => (
+          <ChoiceCard
+            key={id}
+            active={vm.context.purpose === id}
+            icon={
+              id === "EMERGENCY"
+                ? "♥"
+                : id === "RELIGIOUS"
+                  ? "✦"
+                  : id === "TOURISM"
+                    ? "◇"
+                    : id === "VULNERABLE"
+                      ? "♧"
+                      : "●"
+            }
+            title={label}
+            subtitle={sub}
+            onPress={() => vm.choosePurpose(id)}
+            theme={theme}
+          />
+        ))}
+      </ScrollView>
+      <SectionTitle title="Additional requirements" theme={theme} />
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.card, borderColor: theme.line },
+        ]}
+      >
+        {(
+          [
+            ["senior", "Senior citizens", "Comfort and accessible stops"],
+            ["pregnant", "Pregnant traveler", "Anti-jolt road preference"],
+            [
+              "patient",
+              "Urgent medical assistance",
+              "Hospital corridor proximity",
+            ],
+            [
+              "children",
+              "Children / family group",
+              "Family-friendly rest stops",
+            ],
+            ["wheelchair", "Mobility access", "Wheelchair-friendly POIs"],
+          ] as const
+        ).map(([key, label, sub]) => (
+          <ToggleRow
+            key={key}
+            label={label}
+            subtitle={sub}
+            value={vm.context.requirements[key]}
+            onValueChange={() => vm.toggleRequirement(key)}
+            theme={theme}
+          />
+        ))}
+      </View>
+      <Pressable onPress={() => setAdvanced(!advanced)} style={styles.advanced}>
+        <Text style={[styles.sectionTitle, { color: theme.ink }]}>
+          Advanced preferences
+        </Text>
+        <Text style={{ color: blue, fontWeight: "700" }}>
+          {advanced ? "Hide" : "Edit"}
+        </Text>
+      </Pressable>
+      {advanced && (
+        <WeightCard
+          context={vm.context}
+          onAdjust={vm.adjustWeight}
+          onDetour={vm.adjustDetour}
+          theme={theme}
+        />
+      )}
+      <Button
+        title={vm.busy ? "Evaluating routes…" : "Find context-aware routes"}
+        onPress={() => void vm.calculateRoutes()}
+        disabled={vm.busy}
+      />
+      <Text style={[styles.demoLabel, { color: theme.muted }]}>
+        {DEMO_DATA_LABEL}
+      </Text>
+      {vm.error && (
+        <StateBanner
+          text={vm.error}
+          tone="red"
+          onPress={() => vm.setError(null)}
+          theme={theme}
+        />
+      )}
+    </ScrollView>
+  );
 }
 
 function Routes({ vm, theme }: { vm: VM; theme: any }) {
-  if (vm.busy) return <LoadingState theme={theme} label="Evaluating candidate routes…" />;
-  if (vm.error) return <ErrorState theme={theme} message={vm.error} onRetry={() => void vm.calculateRoutes()} />;
-  if (!vm.routes.length) return <EmptyState theme={theme} title="No routes yet" action="Plan a journey" onPress={() => vm.go("planner")} />;
-  return <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}><View style={styles.rowBetween}><View><Text style={[styles.kicker, { color: blue }]}>ROUTE OPTIONS</Text><Text style={[styles.title, { color: theme.ink }]}>Best routes for you</Text></View><Pill text="Demo data" tone="blue" /></View><MapSurface route={vm.selectedRoute} theme={theme} /><Text style={[styles.body, { color: theme.muted }]}>Tap a route to compare safety, surface quality and ETA.</Text>{vm.routes.map((route, i) => <RouteCard key={route.id} route={route} selected={vm.selectedRoute?.id === route.id} onPress={() => vm.selectRoute(route)} theme={theme} rank={i + 1} />)}<View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}><Text style={[styles.sectionTitle, { color: theme.ink }]}>Why this route?</Text><Text style={[styles.body, { color: theme.muted }]}>{vm.selectedRoute?.explanation}</Text></View><Button title="Start navigation" onPress={() => vm.go("navigate")} /><SecondaryButton title="Explore corridor places" onPress={() => vm.go("explore")} theme={theme} /></ScrollView>;
+  if (vm.busy)
+    return <LoadingState theme={theme} label="Evaluating candidate routes…" />;
+  if (vm.error)
+    return (
+      <ErrorState
+        theme={theme}
+        message={vm.error}
+        onRetry={() => void vm.calculateRoutes()}
+      />
+    );
+  if (!vm.routes.length)
+    return (
+      <EmptyState
+        theme={theme}
+        title="No routes yet"
+        action="Plan a journey"
+        onPress={() => vm.go("planner")}
+      />
+    );
+  return (
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.rowBetween}>
+        <View>
+          <Text style={[styles.kicker, { color: blue }]}>ROUTE OPTIONS</Text>
+          <Text style={[styles.title, { color: theme.ink }]}>
+            Best routes for you
+          </Text>
+        </View>
+        <Pill text="Demo data" tone="blue" />
+      </View>
+      <MapSurface route={vm.selectedRoute} theme={theme} />
+      <Text style={[styles.body, { color: theme.muted }]}>
+        Tap a route to compare safety, surface quality and ETA.
+      </Text>
+      <Text style={[styles.helper, { color: theme.muted }]}>
+        {vm.dataLabel}
+      </Text>
+      {vm.routes.map((route, i) => (
+        <RouteCard
+          key={route.id}
+          route={route}
+          selected={vm.selectedRoute?.id === route.id}
+          onPress={() => vm.selectRoute(route)}
+          theme={theme}
+          rank={i + 1}
+        />
+      ))}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.card, borderColor: theme.line },
+        ]}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.ink }]}>
+          Why this route?
+        </Text>
+        <Text style={[styles.body, { color: theme.muted }]}>
+          {vm.selectedRoute?.explanation}
+        </Text>
+      </View>
+      <Button title="Start navigation" onPress={() => vm.go("navigate")} />
+      <SecondaryButton
+        title="Explore corridor places"
+        onPress={() => vm.go("explore")}
+        theme={theme}
+      />
+    </ScrollView>
+  );
 }
 
-function Navigate({ vm, theme }: { vm: VM; theme: any }) { const route = vm.selectedRoute; return <ScrollView contentContainerStyle={styles.scroll}><View style={styles.navBanner}><Text style={styles.navArrow}>↑</Text><View><Text style={styles.navKicker}>NEXT TURN</Text><Text style={styles.navText}>Continue straight</Text><Text style={styles.navSub}>1.2 km · Demo navigation</Text></View></View><MapSurface route={route} theme={theme} navigation /><StateBanner text="Caution: severe potholes ahead in 300 meters" tone="amber" onPress={() => vm.go("reports")} theme={theme} /><View style={styles.metricRow}><Metric label="ETA" value={`${route?.etaMinutes ?? 135} min`} theme={theme} /><Metric label="Distance" value={`${route?.distanceKm ?? 78} km`} theme={theme} /><Metric label="Road quality" value={`${route?.rsqi ?? 94}%`} theme={theme} /></View><View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}><Text style={[styles.sectionTitle, { color: theme.ink }]}>Next facilities</Text><Text style={[styles.body, { color: theme.muted }]}>Emergency hospital · 2.3 km</Text><Text style={[styles.body, { color: theme.muted }]}>Accessible rest stop · 4.1 km</Text></View><Button title="Divert to nearest hospital" onPress={() => { vm.choosePurpose("EMERGENCY"); void vm.calculateRoutes(); }} danger /><SecondaryButton title="Report a road issue" onPress={() => vm.go("reports")} theme={theme} /></ScrollView>; }
+function Navigate({ vm, theme }: { vm: VM; theme: any }) {
+  const route = vm.selectedRoute;
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <View style={styles.navBanner}>
+        <Text style={styles.navArrow}>↑</Text>
+        <View>
+          <Text style={styles.navKicker}>NEXT TURN</Text>
+          <Text style={styles.navText}>Continue straight</Text>
+          <Text style={styles.navSub}>1.2 km · Demo navigation</Text>
+        </View>
+      </View>
+      <MapSurface route={route} theme={theme} navigation />
+      <StateBanner
+        text="Caution: severe potholes ahead in 300 meters"
+        tone="amber"
+        onPress={() => vm.go("reports")}
+        theme={theme}
+      />
+      <View style={styles.metricRow}>
+        <Metric
+          label="ETA"
+          value={`${route?.etaMinutes ?? 135} min`}
+          theme={theme}
+        />
+        <Metric
+          label="Distance"
+          value={`${route?.distanceKm ?? 78} km`}
+          theme={theme}
+        />
+        <Metric
+          label="Road quality"
+          value={`${route?.rsqi ?? 94}%`}
+          theme={theme}
+        />
+      </View>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.card, borderColor: theme.line },
+        ]}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.ink }]}>
+          Next facilities
+        </Text>
+        <Text style={[styles.body, { color: theme.muted }]}>
+          Emergency hospital · 2.3 km
+        </Text>
+        <Text style={[styles.body, { color: theme.muted }]}>
+          Accessible rest stop · 4.1 km
+        </Text>
+      </View>
+      <Button
+        title="Divert to nearest hospital"
+        onPress={() => void vm.calculateEmergencyRoutes()}
+        danger
+      />
+      <SecondaryButton
+        title="Report a road issue"
+        onPress={() => vm.go("reports")}
+        theme={theme}
+      />
+    </ScrollView>
+  );
+}
 
-function Explore({ vm, theme }: { vm: VM; theme: any }) { const [filter, setFilter] = useState("ALL"); const filtered = vm.pois.filter((poi) => filter === "ALL" || poi.category === filter); return <ScrollView contentContainerStyle={styles.scroll}><Text style={[styles.kicker, { color: blue }]}>EXPLORE</Text><Text style={[styles.title, { color: theme.ink }]}>Places along your route</Text><Text style={[styles.body, { color: theme.muted }]}>Suggestions are ranked inside the configured corridor buffer.</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontal}>{["ALL", "TEMPLE", "SCENIC", "HERITAGE", "REST", "HOSPITAL"].map((item) => <Pressable key={item} onPress={() => setFilter(item)} style={[styles.filter, { backgroundColor: filter === item ? blue : theme.card, borderColor: filter === item ? blue : theme.line }]}><Text style={{ color: filter === item ? "white" : theme.muted, fontWeight: "700", fontSize: 12 }}>{item === "ALL" ? "All" : item[0] + item.slice(1).toLowerCase()}</Text></Pressable>)}</ScrollView>{filtered.map((poi) => <PoiCard key={poi.id} poi={poi} onAdd={() => vm.addStop(poi)} theme={theme} />)}{!filtered.length && <EmptyState theme={theme} title="No matching places" action="Show all" onPress={() => setFilter("ALL")} />}</ScrollView>; }
+function Explore({ vm, theme }: { vm: VM; theme: any }) {
+  const [filter, setFilter] = useState("ALL");
+  if (vm.poisLoading)
+    return <LoadingState theme={theme} label="Loading corridor places…" />;
+  if (vm.poisError)
+    return (
+      <ErrorState
+        theme={theme}
+        message={vm.poisError}
+        onRetry={() => void vm.loadPois()}
+      />
+    );
+  const filtered = vm.pois.filter(
+    (poi) => filter === "ALL" || poi.category === filter,
+  );
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <Text style={[styles.kicker, { color: blue }]}>EXPLORE</Text>
+      <Text style={[styles.title, { color: theme.ink }]}>
+        Places along your route
+      </Text>
+      <Text style={[styles.body, { color: theme.muted }]}>
+        Suggestions are ranked inside the configured corridor buffer.
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontal}
+      >
+        {["ALL", "TEMPLE", "SCENIC", "HERITAGE", "REST", "HOSPITAL"].map(
+          (item) => (
+            <Pressable
+              key={item}
+              onPress={() => setFilter(item)}
+              style={[
+                styles.filter,
+                {
+                  backgroundColor: filter === item ? blue : theme.card,
+                  borderColor: filter === item ? blue : theme.line,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: filter === item ? "white" : theme.muted,
+                  fontWeight: "700",
+                  fontSize: 12,
+                }}
+              >
+                {item === "ALL" ? "All" : item[0] + item.slice(1).toLowerCase()}
+              </Text>
+            </Pressable>
+          ),
+        )}
+      </ScrollView>
+      {filtered.map((poi) => (
+        <PoiCard
+          key={poi.id}
+          poi={poi}
+          onAdd={() => vm.addStop(poi)}
+          theme={theme}
+        />
+      ))}
+      {!filtered.length && (
+        <EmptyState
+          theme={theme}
+          title="No matching places"
+          action="Show all"
+          onPress={() => setFilter("ALL")}
+        />
+      )}
+    </ScrollView>
+  );
+}
 
-function Reports({ vm, theme }: { vm: VM; theme: any }) { const [type, setType] = useState<IssueType>("POTHOLE"); const [description, setDescription] = useState(""); const [showForm, setShowForm] = useState(vm.reports.length === 0); if (!showForm) return <ScrollView contentContainerStyle={styles.scroll}><View style={styles.rowBetween}><View><Text style={[styles.kicker, { color: blue }]}>REPORTS</Text><Text style={[styles.title, { color: theme.ink }]}>Road issue reports</Text></View><Pill text={`${vm.reports.length}`} tone="blue" /></View>{vm.reports.map((report) => <View key={report.id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}><View style={styles.rowBetween}><Text style={[styles.sectionTitle, { color: theme.ink }]}>{report.type.replace("_", " ")}</Text><Pill text={report.status.replace("_", " ")} tone={report.status === "VERIFIED" ? "green" : "amber"} /></View><Text style={[styles.body, { color: theme.muted }]}>{report.location}</Text><Text style={[styles.body, { color: theme.muted }]}>{report.description}</Text><Text style={[styles.helper, { color: theme.muted }]}>{report.id} · {report.createdAt} · {report.demo ? "Demo/offline-capable" : "Synced"}</Text></View>)}<Button title="Report a road issue" onPress={() => setShowForm(true)} /></ScrollView>; return <ScrollView contentContainerStyle={styles.scroll}><Text style={[styles.kicker, { color: blue }]}>REPORT A ROAD ISSUE</Text><Text style={[styles.title, { color: theme.ink }]}>Help keep routes safer</Text><Text style={[styles.body, { color: theme.muted }]}>Reports are queued locally if you&apos;re offline and can be reviewed by road safety teams.</Text><View style={styles.issueGrid}>{(["POTHOLE", "CONSTRUCTION", "WATERLOGGING", "ACCIDENT", "BLOCKED_ROAD", "STREETLIGHT"] as IssueType[]).map((item) => <Pressable key={item} onPress={() => setType(item)} style={[styles.issueTile, { backgroundColor: type === item ? "#E5F2FF" : theme.card, borderColor: type === item ? blue : theme.line }]}><Text style={{ fontSize: 22 }}>{item === "POTHOLE" ? "◉" : item === "CONSTRUCTION" ? "⚠" : item === "ACCIDENT" ? "!" : "⌁"}</Text><Text style={{ color: theme.ink, fontWeight: "700", fontSize: 11 }}>{item.replace("_", " ")}</Text></Pressable>)}</View><Field label="Location" value="Near MG Road, Bengaluru" onChangeText={() => undefined} theme={theme} icon="⌖" /><TextInput value={description} onChangeText={setDescription} placeholder="Describe the issue (optional)" placeholderTextColor={theme.muted} multiline style={[styles.textArea, { backgroundColor: theme.card, borderColor: theme.line, color: theme.ink }]} /><Button title="Submit report" onPress={() => void vm.submitReport(type, description)} /><SecondaryButton title="Cancel" onPress={() => setShowForm(false)} theme={theme} /></ScrollView>; }
+function Reports({ vm, theme }: { vm: VM; theme: any }) {
+  const [type, setType] = useState<IssueType>("POTHOLE");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("Near MG Road, Bengaluru");
+  const [showForm, setShowForm] = useState(false);
+  if (vm.reportsLoading)
+    return <LoadingState theme={theme} label="Loading report history…" />;
+  if (vm.reportsError && !vm.reports.length)
+    return (
+      <ErrorState
+        theme={theme}
+        message={vm.reportsError}
+        onRetry={() => void vm.loadReports()}
+      />
+    );
+  if (!showForm && vm.reports.length === 0)
+    return (
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <EmptyState
+          theme={theme}
+          title="No reports yet"
+          action="Report a road issue"
+          onPress={() => setShowForm(true)}
+        />
+      </ScrollView>
+    );
+  if (!showForm)
+    return (
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.rowBetween}>
+          <View>
+            <Text style={[styles.kicker, { color: blue }]}>REPORTS</Text>
+            <Text style={[styles.title, { color: theme.ink }]}>
+              Road issue reports
+            </Text>
+          </View>
+          <Pill text={`${vm.reports.length}`} tone="blue" />
+        </View>
+        {vm.reports.map((report) => (
+          <View
+            key={report.id}
+            style={[
+              styles.card,
+              { backgroundColor: theme.card, borderColor: theme.line },
+            ]}
+          >
+            <View style={styles.rowBetween}>
+              <Text style={[styles.sectionTitle, { color: theme.ink }]}>
+                {report.type.replace("_", " ")}
+              </Text>
+              <Pill
+                text={report.status.replace("_", " ")}
+                tone={report.status === "VERIFIED" ? "green" : "amber"}
+              />
+            </View>
+            <Text style={[styles.body, { color: theme.muted }]}>
+              {report.location}
+            </Text>
+            <Text style={[styles.body, { color: theme.muted }]}>
+              {report.description}
+            </Text>
+            <Text style={[styles.helper, { color: theme.muted }]}>
+              {report.id} · {report.createdAt} ·{" "}
+              {report.demo ? "Demo/offline-capable" : "Synced"}
+            </Text>
+          </View>
+        ))}
+        {vm.reportsError && (
+          <StateBanner
+            text={vm.reportsError}
+            tone="amber"
+            onPress={() => void vm.loadReports()}
+            theme={theme}
+          />
+        )}
+        <Button title="Report a road issue" onPress={() => setShowForm(true)} />
+      </ScrollView>
+    );
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <Text style={[styles.kicker, { color: blue }]}>REPORT A ROAD ISSUE</Text>
+      <Text style={[styles.title, { color: theme.ink }]}>
+        Help keep routes safer
+      </Text>
+      <Text style={[styles.body, { color: theme.muted }]}>
+        Reports are queued locally if you&apos;re offline and can be reviewed by
+        road safety teams.
+      </Text>
+      <View style={styles.issueGrid}>
+        {(
+          [
+            "POTHOLE",
+            "CONSTRUCTION",
+            "WATERLOGGING",
+            "ACCIDENT",
+            "BLOCKED_ROAD",
+            "STREETLIGHT",
+          ] as IssueType[]
+        ).map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => setType(item)}
+            style={[
+              styles.issueTile,
+              {
+                backgroundColor: type === item ? "#E5F2FF" : theme.card,
+                borderColor: type === item ? blue : theme.line,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 22 }}>
+              {item === "POTHOLE"
+                ? "◉"
+                : item === "CONSTRUCTION"
+                  ? "⚠"
+                  : item === "ACCIDENT"
+                    ? "!"
+                    : "⌁"}
+            </Text>
+            <Text style={{ color: theme.ink, fontWeight: "700", fontSize: 11 }}>
+              {item.replace("_", " ")}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <Field
+        label="Location"
+        value={location}
+        onChangeText={setLocation}
+        theme={theme}
+        icon="⌖"
+      />
+      <TextInput
+        value={description}
+        onChangeText={setDescription}
+        placeholder="Describe the issue (optional)"
+        placeholderTextColor={theme.muted}
+        multiline
+        style={[
+          styles.textArea,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.line,
+            color: theme.ink,
+          },
+        ]}
+      />
+      <Button
+        title="Submit report"
+        onPress={async () => {
+          await vm.submitReport(type, description, location);
+          setShowForm(false);
+        }}
+      />
+      <SecondaryButton
+        title="Cancel"
+        onPress={() => setShowForm(false)}
+        theme={theme}
+      />
+    </ScrollView>
+  );
+}
 
-function Saved({ theme, vm }: { theme: any; vm: VM }) { return <ScrollView contentContainerStyle={styles.scroll}><Text style={[styles.kicker, { color: blue }]}>SAVED PLACES</Text><Text style={[styles.title, { color: theme.ink }]}>Your places</Text>{["Home · Bengaluru, Karnataka", "Office · Koramangala, Bengaluru", "Mysuru · Karnataka", "Lalbagh Botanical Garden"].map((item) => <Pressable key={item} onPress={() => vm.go("planner")} style={[styles.listRow, { backgroundColor: theme.card, borderColor: theme.line }]}><Text style={{ color: blue, fontSize: 20 }}>⌖</Text><Text style={[styles.body, { color: theme.ink, marginBottom: 0 }]}>{item}</Text><Text style={{ color: theme.muted }}>›</Text></Pressable>)}<SecondaryButton title="Recent searches" onPress={() => vm.go("planner")} theme={theme} /></ScrollView>; }
+function Saved({ theme, vm }: { theme: any; vm: VM }) {
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <Text style={[styles.kicker, { color: blue }]}>SAVED PLACES</Text>
+      <Text style={[styles.title, { color: theme.ink }]}>Your places</Text>
+      {vm.savedPlaces.map((item) => (
+        <Pressable
+          key={item}
+          onPress={() => vm.selectSavedPlace(item)}
+          style={[
+            styles.listRow,
+            { backgroundColor: theme.card, borderColor: theme.line },
+          ]}
+        >
+          <Text style={{ color: blue, fontSize: 20 }}>⌖</Text>
+          <Text
+            style={[
+              styles.body,
+              { color: theme.ink, marginBottom: 0, flex: 1 },
+            ]}
+          >
+            {item}
+          </Text>
+          <Text style={{ color: theme.muted }}>›</Text>
+        </Pressable>
+      ))}
+      <SecondaryButton
+        title="Recent searches"
+        onPress={() => vm.go("planner")}
+        theme={theme}
+      />
+    </ScrollView>
+  );
+}
 
-function Profile({ vm, theme, dark, setDark }: { vm: VM; theme: any; dark: boolean; setDark: (value: boolean) => void }) { const setting = (label: string, value: boolean, change: (v: boolean) => void) => <View style={[styles.listRow, { backgroundColor: theme.card, borderColor: theme.line }]}><Text style={[styles.body, { color: theme.ink, marginBottom: 0, flex: 1 }]}>{label}</Text><Switch value={value} onValueChange={change} trackColor={{ false: theme.line, true: "#9DCEF8" }} thumbColor={value ? blue : "#FFFFFF"} /></View>; return <ScrollView contentContainerStyle={styles.scroll}><View style={styles.profileHero}><View style={styles.avatar}><Text style={{ color: blue, fontSize: 28 }}>SP</Text></View><Text style={[styles.title, { color: theme.ink, marginTop: 12 }]}>Sai Priya</Text><Text style={[styles.body, { color: theme.muted }]}>Personalized travel preferences</Text></View><SectionTitle title="App preferences" theme={theme} />{setting("Dark theme", dark, (value) => { setDark(value); vm.updateSettings({ darkMode: value }); })}{setting("Accessibility mode", vm.settings.accessibilityMode, (value) => vm.updateSettings({ accessibilityMode: value }))}{setting("Voice guidance", vm.settings.voiceGuidance, (value) => vm.updateSettings({ voiceGuidance: value }))}{setting("Offline mode", vm.settings.offlineMode, (value) => { vm.updateSettings({ offlineMode: value }); vm.setOffline(value); })}<SectionTitle title="Privacy & security" theme={theme} /><View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}><Text style={{ fontSize: 36, textAlign: "center" }}>🛡️</Text><Text style={[styles.sectionTitle, { color: theme.ink, textAlign: "center" }]}>Your data is safe</Text><Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>Health and vulnerability context stays local to your profile and is never included in public reports.</Text></View><SecondaryButton title="About ContextRoute AI" onPress={() => {}} theme={theme} /></ScrollView>; }
+function Profile({
+  vm,
+  theme,
+  dark,
+  setDark,
+}: {
+  vm: VM;
+  theme: any;
+  dark: boolean;
+  setDark: (value: boolean) => void;
+}) {
+  const setting = (
+    label: string,
+    value: boolean,
+    change: (v: boolean) => void,
+  ) => (
+    <View
+      style={[
+        styles.listRow,
+        { backgroundColor: theme.card, borderColor: theme.line },
+      ]}
+    >
+      <Text
+        style={[styles.body, { color: theme.ink, marginBottom: 0, flex: 1 }]}
+      >
+        {label}
+      </Text>
+      <Switch
+        value={value}
+        onValueChange={change}
+        trackColor={{ false: theme.line, true: "#9DCEF8" }}
+        thumbColor={value ? blue : "#FFFFFF"}
+      />
+    </View>
+  );
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <View style={styles.profileHero}>
+        <View style={styles.avatar}>
+          <Text style={{ color: blue, fontSize: 28 }}>SP</Text>
+        </View>
+        <Text style={[styles.title, { color: theme.ink, marginTop: 12 }]}>
+          Sai Priya
+        </Text>
+        <Text style={[styles.body, { color: theme.muted }]}>
+          Personalized travel preferences
+        </Text>
+      </View>
+      <SectionTitle title="App preferences" theme={theme} />
+      {setting("Dark theme", dark, (value) => {
+        setDark(value);
+        vm.updateSettings({ darkMode: value });
+      })}
+      {setting("Accessibility mode", vm.settings.accessibilityMode, (value) =>
+        vm.updateSettings({ accessibilityMode: value }),
+      )}
+      {setting("Voice guidance", vm.settings.voiceGuidance, (value) =>
+        vm.updateSettings({ voiceGuidance: value }),
+      )}
+      {setting("Offline mode", vm.settings.offlineMode, (value) => {
+        vm.updateSettings({ offlineMode: value });
+        vm.setOffline(value);
+      })}
+      <SectionTitle title="Privacy & security" theme={theme} />
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.card, borderColor: theme.line },
+        ]}
+      >
+        <Text style={{ fontSize: 36, textAlign: "center" }}>🛡️</Text>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.ink, textAlign: "center" },
+          ]}
+        >
+          Your data is safe
+        </Text>
+        <Text
+          style={[styles.body, { color: theme.muted, textAlign: "center" }]}
+        >
+          Health and vulnerability context stays local to your profile and is
+          never included in public reports.
+        </Text>
+      </View>
+      <SecondaryButton
+        title="About ContextRoute AI"
+        onPress={() =>
+          vm.setError(
+            "ContextRoute AI is using clearly labeled demo fixtures because no live routing provider is configured.",
+          )
+        }
+        theme={theme}
+      />
+      {vm.error && (
+        <StateBanner
+          text={vm.error}
+          tone="amber"
+          onPress={() => vm.setError(null)}
+          theme={theme}
+        />
+      )}
+    </ScrollView>
+  );
+}
 
-function BottomNav({ screen, go, theme }: { screen: Screen; go: (screen: Screen) => void; theme: any }) { return <View style={[styles.bottomNav, { backgroundColor: theme.card, borderTopColor: theme.line }]}>{([["planner", "⌂", "Plan"], ["explore", "◇", "Explore"], ["reports", "⚑", "Reports"], ["saved", "♡", "Saved"], ["profile", "●", "Profile"]] as [Screen, string, string][]).map(([id, icon, label]) => <Pressable key={id} onPress={() => go(id)} style={styles.navItem}><Text style={{ color: screen === id ? blue : theme.muted, fontSize: 20 }}>{icon}</Text><Text style={{ color: screen === id ? blue : theme.muted, fontSize: 10, fontWeight: "700" }}>{label}</Text></Pressable>)}</View>; }
+function BottomNav({
+  screen,
+  go,
+  theme,
+}: {
+  screen: Screen;
+  go: (screen: Screen) => void;
+  theme: any;
+}) {
+  return (
+    <View
+      style={[
+        styles.bottomNav,
+        { backgroundColor: theme.card, borderTopColor: theme.line },
+      ]}
+    >
+      {(
+        [
+          ["planner", "⌂", "Plan"],
+          ["explore", "◇", "Explore"],
+          ["reports", "⚑", "Reports"],
+          ["saved", "♡", "Saved"],
+          ["profile", "●", "Profile"],
+        ] as [Screen, string, string][]
+      ).map(([id, icon, label]) => (
+        <Pressable key={id} onPress={() => go(id)} style={styles.navItem}>
+          <Text
+            style={{ color: screen === id ? blue : theme.muted, fontSize: 20 }}
+          >
+            {icon}
+          </Text>
+          <Text
+            style={{
+              color: screen === id ? blue : theme.muted,
+              fontSize: 10,
+              fontWeight: "700",
+            }}
+          >
+            {label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
-function MapSurface({ route, theme, navigation = false }: { route: RouteOption | null; theme: any; navigation?: boolean }) { const segments = route?.segments ?? [82, 86, 91, 88, 94, 96]; return <View style={[styles.map, { backgroundColor: navigation ? "#DCEBDF" : "#EAF4FA", borderColor: theme.line }]}><View style={styles.mapRoadA} /><View style={styles.mapRoadB} /><View style={styles.mapRoadC} /><View style={styles.mapRoute}>{segments.map((score, i) => <View key={i} style={[styles.routeSegment, { backgroundColor: score >= 80 ? teal : score >= 60 ? "#F3B53F" : "#E65C5C", transform: [{ rotate: `${i % 2 ? 3 : -3}deg` }] }]} />)}</View><View style={styles.mapPinStart}><Text>●</Text></View><View style={styles.mapPinEnd}><Text>◆</Text></View><View style={[styles.mapLegend, { backgroundColor: theme.card }]}><Text style={{ color: theme.muted, fontSize: 10 }}>Demo map · RSQI overlay</Text></View></View>; }
+function MapSurface({
+  route,
+  theme,
+  navigation = false,
+}: {
+  route: RouteOption | null;
+  theme: any;
+  navigation?: boolean;
+}) {
+  const segments = route?.segments ?? [82, 86, 91, 88, 94, 96];
+  return (
+    <View
+      style={[
+        styles.map,
+        {
+          backgroundColor: navigation ? "#DCEBDF" : "#EAF4FA",
+          borderColor: theme.line,
+        },
+      ]}
+    >
+      <View style={styles.mapRoadA} />
+      <View style={styles.mapRoadB} />
+      <View style={styles.mapRoadC} />
+      <View style={styles.mapRoute}>
+        {segments.map((score, i) => (
+          <View
+            key={i}
+            style={[
+              styles.routeSegment,
+              {
+                backgroundColor:
+                  score >= 80 ? teal : score >= 60 ? "#F3B53F" : "#E65C5C",
+                transform: [{ rotate: `${i % 2 ? 3 : -3}deg` }],
+              },
+            ]}
+          />
+        ))}
+      </View>
+      <View style={styles.mapPinStart}>
+        <Text>●</Text>
+      </View>
+      <View style={styles.mapPinEnd}>
+        <Text>◆</Text>
+      </View>
+      <View style={[styles.mapLegend, { backgroundColor: theme.card }]}>
+        <Text style={{ color: theme.muted, fontSize: 10 }}>
+          Demo map · RSQI overlay
+        </Text>
+      </View>
+    </View>
+  );
+}
 
-function PermissionModal({ visible, onAllow, onDeny, theme }: { visible: boolean; onAllow: () => void; onDeny: () => void; theme: any }) { return <Modal visible={visible} transparent animationType="fade"><View style={styles.modalBackdrop}><View style={[styles.modalCard, { backgroundColor: theme.card }]}><Text style={{ fontSize: 54, textAlign: "center" }}>⌖</Text><Text style={[styles.title, { color: theme.ink, textAlign: "center" }]}>Location permission</Text><Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>ContextRoute needs location to show nearby places, accurate routes and hazard alerts.</Text><Button title="Allow location" onPress={onAllow} /><SecondaryButton title="Not now" onPress={onDeny} theme={theme} /></View></View></Modal>; }
-function LoadingState({ theme, label }: { theme: any; label: string }) { return <View style={styles.centerState}><ActivityIndicator size="large" color={blue} /><Text style={[styles.sectionTitle, { color: theme.ink, marginTop: 18 }]}>{label}</Text><Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>Evaluating road surface, traffic and nearby facilities.</Text></View>; }
-function EmptyState({ theme, title, action, onPress }: { theme: any; title: string; action: string; onPress: () => void }) { return <View style={styles.centerState}><Text style={{ fontSize: 58 }}>▱</Text><Text style={[styles.title, { color: theme.ink }]}>{title}</Text><Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>Plan a route or broaden your filters to see ContextRoute data.</Text><Button title={action} onPress={onPress} /></View>; }
-function ErrorState({ theme, message, onRetry }: { theme: any; message: string; onRetry: () => void }) { return <View style={styles.centerState}><Text style={{ fontSize: 54, color: "#E5484D" }}>!</Text><Text style={[styles.title, { color: theme.ink }]}>Something went wrong</Text><Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>{message}</Text><Button title="Try again" onPress={onRetry} /></View>; }
-function StateBanner({ text, tone, onPress, theme }: { text: string; tone: "amber" | "red"; onPress: () => void; theme: any }) { return <Pressable onPress={onPress} style={[styles.banner, { backgroundColor: tone === "red" ? "#FFF0F0" : "#FFF6DD", borderColor: tone === "red" ? "#F4B8B8" : "#F1D38A" }]}><Text style={{ color: tone === "red" ? "#B42318" : "#8A5A00", fontWeight: "700", flex: 1 }}>{text}</Text><Text style={{ color: tone === "red" ? "#B42318" : "#8A5A00" }}>›</Text></Pressable>; }
-function SectionTitle({ title, theme }: { title: string; theme: any }) { return <Text style={[styles.sectionTitle, { color: theme.ink, marginTop: 18, marginBottom: 10 }]}>{title}</Text>; }
-function Field({ label, value, onChangeText, theme, icon }: { label: string; value: string; onChangeText: (value: string) => void; theme: any; icon: string }) { return <View style={styles.field}><Text style={{ color: blue, fontSize: 20, marginRight: 12 }}>{icon}</Text><View style={{ flex: 1 }}><Text style={[styles.helper, { color: theme.muted }]}>{label}</Text><TextInput value={value} onChangeText={onChangeText} style={[styles.fieldInput, { color: theme.ink }]} /></View></View>; }
-function ChoiceCard({ active, icon, title, subtitle, onPress, theme }: { active: boolean; icon: string; title: string; subtitle: string; onPress: () => void; theme: any }) { return <Pressable onPress={onPress} style={[styles.choiceCard, { backgroundColor: active ? "#E5F2FF" : theme.card, borderColor: active ? blue : theme.line }]}><Text style={{ color: active ? blue : teal, fontSize: 24 }}>{icon}</Text><Text style={[styles.choiceTitle, { color: theme.ink }]}>{title}</Text><Text style={[styles.helper, { color: theme.muted }]}>{subtitle}</Text></Pressable>; }
-function ToggleRow({ label, subtitle, value, onValueChange, theme }: { label: string; subtitle: string; value: boolean; onValueChange: () => void; theme: any }) { return <View style={styles.toggleRow}><View style={{ flex: 1 }}><Text style={[styles.body, { color: theme.ink, fontWeight: "700", marginBottom: 2 }]}>{label}</Text><Text style={[styles.helper, { color: theme.muted }]}>{subtitle}</Text></View><Switch value={value} onValueChange={onValueChange} trackColor={{ false: theme.line, true: "#9DCEF8" }} thumbColor={value ? blue : "#FFFFFF"} /></View>; }
-function WeightCard({ context, theme }: { context: TravelerContext; theme: any }) { return <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.line }]}>{Object.entries(context.weights).map(([key, value]) => <View key={key} style={styles.weightRow}><Text style={[styles.helper, { color: theme.muted, width: 90 }]}>{key}</Text><View style={styles.weightTrack}><View style={[styles.weightFill, { width: `${value}%` }]} /></View><Text style={[styles.helper, { color: theme.ink, width: 30, textAlign: "right" }]}>{value}</Text></View>)}</View>; }
-function RouteCard({ route, selected, onPress, theme, rank }: { route: RouteOption; selected: boolean; onPress: () => void; theme: any; rank: number }) { return <Pressable onPress={onPress} style={[styles.routeCard, { backgroundColor: theme.card, borderColor: selected ? blue : theme.line, borderWidth: selected ? 2 : 1 }]}><View style={styles.rowBetween}><View style={{ flex: 1 }}><Text style={[styles.helper, { color: blue }]}>ROUTE {rank} · {route.badge}</Text><Text style={[styles.sectionTitle, { color: theme.ink }]}>{route.title}</Text></View><Text style={[styles.score, { color: teal }]}>{route.matchScore}</Text></View><View style={styles.metricRow}><Metric label="ETA" value={`${route.etaMinutes} min`} theme={theme} /><Metric label="Distance" value={`${route.distanceKm} km`} theme={theme} /><Metric label="Smooth" value={`${route.rsqi}%`} theme={theme} /></View><Text style={[styles.helper, { color: theme.muted }]}>{route.hazards} hazards · {route.constructionZones} works zones · {route.hospitals} hospitals</Text></Pressable>; }
-function Metric({ label, value, theme }: { label: string; value: string; theme: any }) { return <View style={styles.metric}><Text style={[styles.metricValue, { color: theme.ink }]}>{value}</Text><Text style={[styles.helper, { color: theme.muted }]}>{label}</Text></View>; }
-function PoiCard({ poi, onAdd, theme }: { poi: Poi; onAdd: () => void; theme: any }) { return <View style={[styles.poiCard, { backgroundColor: theme.card, borderColor: theme.line }]}><View style={styles.poiImage}><Text style={{ fontSize: 28 }}>{poi.category === "TEMPLE" ? "🛕" : poi.category === "HOSPITAL" ? "✚" : poi.category === "REST" ? "☕" : "🌿"}</Text></View><View style={{ flex: 1 }}><Text style={[styles.sectionTitle, { color: theme.ink }]}>{poi.name}</Text><Text style={[styles.helper, { color: theme.muted }]}>{poi.subtitle}</Text><Text style={[styles.helper, { color: theme.muted }]}>{poi.rating} ★ · {poi.distanceKm} km · +{poi.detourMinutes} min</Text></View><Pressable onPress={onAdd} style={styles.addButton}><Text style={{ color: blue, fontWeight: "800" }}>Add</Text></Pressable></View>; }
-function Pill({ text, tone }: { text: string; tone: "blue" | "green" | "amber" }) { return <View style={[styles.pill, { backgroundColor: tone === "green" ? "#DFF7EF" : tone === "amber" ? "#FFF1C7" : "#E5F2FF" }]}><Text style={{ color: tone === "green" ? "#087F5B" : tone === "amber" ? "#8A5A00" : blue, fontSize: 10, fontWeight: "800" }}>{text}</Text></View>; }
-function Button({ title, onPress, disabled, danger }: { title: string; onPress: () => void; disabled?: boolean; danger?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={[styles.button, { backgroundColor: danger ? "#E5484D" : blue, opacity: disabled ? 0.55 : 1 }]}><Text style={styles.buttonText}>{title}</Text></Pressable>; }
-function SecondaryButton({ title, onPress, theme }: { title: string; onPress: () => void; theme: any }) { return <Pressable onPress={onPress} style={[styles.secondaryButton, { borderColor: theme.line }]}><Text style={{ color: blue, fontWeight: "800" }}>{title}</Text></Pressable>; }
+function PermissionModal({
+  visible,
+  onAllow,
+  onDeny,
+  theme,
+}: {
+  visible: boolean;
+  onAllow: () => void;
+  onDeny: () => void;
+  theme: any;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={styles.modalBackdrop}>
+        <View style={[styles.modalCard, { backgroundColor: theme.card }]}>
+          <Text style={{ fontSize: 54, textAlign: "center" }}>⌖</Text>
+          <Text
+            style={[styles.title, { color: theme.ink, textAlign: "center" }]}
+          >
+            Location permission
+          </Text>
+          <Text
+            style={[styles.body, { color: theme.muted, textAlign: "center" }]}
+          >
+            ContextRoute needs location to show nearby places, accurate routes
+            and hazard alerts.
+          </Text>
+          <Button title="Allow location" onPress={onAllow} />
+          <SecondaryButton title="Not now" onPress={onDeny} theme={theme} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+function LoadingState({ theme, label }: { theme: any; label: string }) {
+  return (
+    <View style={styles.centerState}>
+      <ActivityIndicator size="large" color={blue} />
+      <Text style={[styles.sectionTitle, { color: theme.ink, marginTop: 18 }]}>
+        {label}
+      </Text>
+      <Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>
+        Evaluating road surface, traffic and nearby facilities.
+      </Text>
+    </View>
+  );
+}
+function EmptyState({
+  theme,
+  title,
+  action,
+  onPress,
+}: {
+  theme: any;
+  title: string;
+  action: string;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.centerState}>
+      <Text style={{ fontSize: 58 }}>▱</Text>
+      <Text style={[styles.title, { color: theme.ink }]}>{title}</Text>
+      <Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>
+        Plan a route or broaden your filters to see ContextRoute data.
+      </Text>
+      <Button title={action} onPress={onPress} />
+    </View>
+  );
+}
+function ErrorState({
+  theme,
+  message,
+  onRetry,
+}: {
+  theme: any;
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <View style={styles.centerState}>
+      <Text style={{ fontSize: 54, color: "#E5484D" }}>!</Text>
+      <Text style={[styles.title, { color: theme.ink }]}>
+        Something went wrong
+      </Text>
+      <Text style={[styles.body, { color: theme.muted, textAlign: "center" }]}>
+        {message}
+      </Text>
+      <Button title="Try again" onPress={onRetry} />
+    </View>
+  );
+}
+function StateBanner({
+  text,
+  tone,
+  onPress,
+  theme,
+}: {
+  text: string;
+  tone: "amber" | "red";
+  onPress: () => void;
+  theme: any;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.banner,
+        {
+          backgroundColor: tone === "red" ? "#FFF0F0" : "#FFF6DD",
+          borderColor: tone === "red" ? "#F4B8B8" : "#F1D38A",
+        },
+      ]}
+    >
+      <Text
+        style={{
+          color: tone === "red" ? "#B42318" : "#8A5A00",
+          fontWeight: "700",
+          flex: 1,
+        }}
+      >
+        {text}
+      </Text>
+      <Text style={{ color: tone === "red" ? "#B42318" : "#8A5A00" }}>›</Text>
+    </Pressable>
+  );
+}
+function SectionTitle({ title, theme }: { title: string; theme: any }) {
+  return (
+    <Text
+      style={[
+        styles.sectionTitle,
+        { color: theme.ink, marginTop: 18, marginBottom: 10 },
+      ]}
+    >
+      {title}
+    </Text>
+  );
+}
+function Field({
+  label,
+  value,
+  onChangeText,
+  theme,
+  icon,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  theme: any;
+  icon: string;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={{ color: blue, fontSize: 20, marginRight: 12 }}>{icon}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.helper, { color: theme.muted }]}>{label}</Text>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          style={[styles.fieldInput, { color: theme.ink }]}
+        />
+      </View>
+    </View>
+  );
+}
+function ChoiceCard({
+  active,
+  icon,
+  title,
+  subtitle,
+  onPress,
+  theme,
+}: {
+  active: boolean;
+  icon: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  theme: any;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.choiceCard,
+        {
+          backgroundColor: active ? "#E5F2FF" : theme.card,
+          borderColor: active ? blue : theme.line,
+        },
+      ]}
+    >
+      <Text style={{ color: active ? blue : teal, fontSize: 24 }}>{icon}</Text>
+      <Text style={[styles.choiceTitle, { color: theme.ink }]}>{title}</Text>
+      <Text style={[styles.helper, { color: theme.muted }]}>{subtitle}</Text>
+    </Pressable>
+  );
+}
+function ToggleRow({
+  label,
+  subtitle,
+  value,
+  onValueChange,
+  theme,
+}: {
+  label: string;
+  subtitle: string;
+  value: boolean;
+  onValueChange: () => void;
+  theme: any;
+}) {
+  return (
+    <View style={styles.toggleRow}>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={[
+            styles.body,
+            { color: theme.ink, fontWeight: "700", marginBottom: 2 },
+          ]}
+        >
+          {label}
+        </Text>
+        <Text style={[styles.helper, { color: theme.muted }]}>{subtitle}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: theme.line, true: "#9DCEF8" }}
+        thumbColor={value ? blue : "#FFFFFF"}
+      />
+    </View>
+  );
+}
+function WeightCard({
+  context,
+  onAdjust,
+  onDetour,
+  theme,
+}: {
+  context: TravelerContext;
+  onAdjust: (key: keyof TravelerContext["weights"], delta: number) => void;
+  onDetour: (delta: number) => void;
+  theme: any;
+}) {
+  const keys = ["time", "smoothness", "safety", "medical", "poi"] as const;
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.card, borderColor: theme.line },
+      ]}
+    >
+      {keys.map((key) => (
+        <View key={key} style={styles.weightRow}>
+          <Text style={[styles.helper, { color: theme.muted, width: 80 }]}>
+            {key}
+          </Text>
+          <Pressable onPress={() => onAdjust(key, -5)}>
+            <Text style={{ color: blue, fontSize: 18 }}>−</Text>
+          </Pressable>
+          <View style={styles.weightTrack}>
+            <View
+              style={[styles.weightFill, { width: `${context.weights[key]}%` }]}
+            />
+          </View>
+          <Pressable onPress={() => onAdjust(key, 5)}>
+            <Text style={{ color: blue, fontSize: 18 }}>+</Text>
+          </Pressable>
+          <Text
+            style={[
+              styles.helper,
+              { color: theme.ink, width: 30, textAlign: "right" },
+            ]}
+          >
+            {context.weights[key]}
+          </Text>
+        </View>
+      ))}
+      <View style={styles.weightRow}>
+        <Text style={[styles.helper, { color: theme.muted, width: 80 }]}>
+          Detour km
+        </Text>
+        <Pressable onPress={() => onDetour(-1)}>
+          <Text style={{ color: blue, fontSize: 18 }}>−</Text>
+        </Pressable>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.ink, flex: 1, textAlign: "center" },
+          ]}
+        >
+          {context.maxDetourKm} km
+        </Text>
+        <Pressable onPress={() => onDetour(1)}>
+          <Text style={{ color: blue, fontSize: 18 }}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+function RouteCard({
+  route,
+  selected,
+  onPress,
+  theme,
+  rank,
+}: {
+  route: RouteOption;
+  selected: boolean;
+  onPress: () => void;
+  theme: any;
+  rank: number;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.routeCard,
+        {
+          backgroundColor: theme.card,
+          borderColor: selected ? blue : theme.line,
+          borderWidth: selected ? 2 : 1,
+        },
+      ]}
+    >
+      <View style={styles.rowBetween}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.helper, { color: blue }]}>
+            ROUTE {rank} · {route.badge}
+          </Text>
+          <Text style={[styles.sectionTitle, { color: theme.ink }]}>
+            {route.title}
+          </Text>
+        </View>
+        <Text style={[styles.score, { color: teal }]}>{route.matchScore}</Text>
+      </View>
+      <View style={styles.metricRow}>
+        <Metric label="ETA" value={`${route.etaMinutes} min`} theme={theme} />
+        <Metric
+          label="Distance"
+          value={`${route.distanceKm} km`}
+          theme={theme}
+        />
+        <Metric label="Smooth" value={`${route.rsqi}%`} theme={theme} />
+      </View>
+      <Text style={[styles.helper, { color: theme.muted }]}>
+        {route.hazards} hazards · {route.constructionZones} works zones ·{" "}
+        {route.hospitals} hospitals
+      </Text>
+    </Pressable>
+  );
+}
+function Metric({
+  label,
+  value,
+  theme,
+}: {
+  label: string;
+  value: string;
+  theme: any;
+}) {
+  return (
+    <View style={styles.metric}>
+      <Text style={[styles.metricValue, { color: theme.ink }]}>{value}</Text>
+      <Text style={[styles.helper, { color: theme.muted }]}>{label}</Text>
+    </View>
+  );
+}
+function PoiCard({
+  poi,
+  onAdd,
+  theme,
+}: {
+  poi: Poi;
+  onAdd: () => void;
+  theme: any;
+}) {
+  return (
+    <View
+      style={[
+        styles.poiCard,
+        { backgroundColor: theme.card, borderColor: theme.line },
+      ]}
+    >
+      <View style={styles.poiImage}>
+        <Text style={{ fontSize: 28 }}>
+          {poi.category === "TEMPLE"
+            ? "🛕"
+            : poi.category === "HOSPITAL"
+              ? "✚"
+              : poi.category === "REST"
+                ? "☕"
+                : "🌿"}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.sectionTitle, { color: theme.ink }]}>
+          {poi.name}
+        </Text>
+        <Text style={[styles.helper, { color: theme.muted }]}>
+          {poi.subtitle}
+        </Text>
+        <Text style={[styles.helper, { color: theme.muted }]}>
+          {poi.rating} ★ · {poi.distanceKm} km · +{poi.detourMinutes} min
+        </Text>
+      </View>
+      <Pressable onPress={onAdd} style={styles.addButton}>
+        <Text style={{ color: blue, fontWeight: "800" }}>Add</Text>
+      </Pressable>
+    </View>
+  );
+}
+function Pill({
+  text,
+  tone,
+}: {
+  text: string;
+  tone: "blue" | "green" | "amber";
+}) {
+  return (
+    <View
+      style={[
+        styles.pill,
+        {
+          backgroundColor:
+            tone === "green"
+              ? "#DFF7EF"
+              : tone === "amber"
+                ? "#FFF1C7"
+                : "#E5F2FF",
+        },
+      ]}
+    >
+      <Text
+        style={{
+          color:
+            tone === "green" ? "#087F5B" : tone === "amber" ? "#8A5A00" : blue,
+          fontSize: 10,
+          fontWeight: "800",
+        }}
+      >
+        {text}
+      </Text>
+    </View>
+  );
+}
+function Button({
+  title,
+  onPress,
+  disabled,
+  danger,
+}: {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={[
+        styles.button,
+        {
+          backgroundColor: danger ? "#E5484D" : blue,
+          opacity: disabled ? 0.55 : 1,
+        },
+      ]}
+    >
+      <Text style={styles.buttonText}>{title}</Text>
+    </Pressable>
+  );
+}
+function SecondaryButton({
+  title,
+  onPress,
+  theme,
+}: {
+  title: string;
+  onPress: () => void;
+  theme: any;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.secondaryButton, { borderColor: theme.line }]}
+    >
+      <Text style={{ color: blue, fontWeight: "800" }}>{title}</Text>
+    </Pressable>
+  );
+}
 
-const styles = StyleSheet.create({ safe: { flex: 1 }, app: { flex: 1 }, onboarding: { flex: 1, alignItems: "center", paddingHorizontal: 22, paddingTop: 28 }, logoMark: { width: 58, height: 58, borderRadius: 22, backgroundColor: "#E5F2FF", alignItems: "center", justifyContent: "center" }, logoPin: { color: blue, fontSize: 36 }, brand: { fontSize: 28, fontWeight: "800", marginTop: 12 }, tagline: { fontSize: 12, marginTop: 4 }, illustration: { width: "100%", minHeight: 330, borderRadius: 28, borderWidth: 1, alignItems: "center", justifyContent: "center", padding: 26, marginTop: 42 }, heroTitle: { fontSize: 24, fontWeight: "800", marginTop: 22, textAlign: "center" }, body: { fontSize: 14, lineHeight: 21, marginBottom: 10 }, dots: { flexDirection: "row", gap: 6, marginVertical: 24 }, dot: { width: 7, height: 7, borderRadius: 5 }, linkButton: { padding: 12 }, link: { fontWeight: "700" }, header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: 1 }, headerBrand: { fontSize: 18, fontWeight: "800" }, headerSub: { fontSize: 10 }, emergencyMini: { width: 42, height: 34, borderRadius: 12, backgroundColor: "#E5484D", alignItems: "center", justifyContent: "center" }, emergencyMiniText: { color: "white", fontSize: 11, fontWeight: "900" }, scroll: { padding: 18, paddingBottom: 100 }, kicker: { fontSize: 11, fontWeight: "900", letterSpacing: 1, marginTop: 4 }, title: { fontSize: 27, fontWeight: "800", marginBottom: 5 }, card: { borderRadius: 18, borderWidth: 1, padding: 16, marginVertical: 8 }, field: { flexDirection: "row", alignItems: "center", paddingVertical: 6 }, fieldDivider: { height: 1, marginVertical: 4 }, fieldInput: { fontSize: 15, fontWeight: "700", paddingVertical: 2 }, helper: { fontSize: 11, lineHeight: 16 }, sectionTitle: { fontSize: 16, fontWeight: "800" }, horizontal: { gap: 10, paddingBottom: 4 }, choiceCard: { width: 140, minHeight: 120, padding: 14, borderRadius: 16, borderWidth: 1 }, choiceTitle: { fontSize: 13, fontWeight: "800", marginTop: 12, marginBottom: 3 }, toggleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 11 }, advanced: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14 }, weightRow: { flexDirection: "row", alignItems: "center", marginVertical: 7 }, weightTrack: { height: 7, backgroundColor: "#E6EDF5", borderRadius: 10, flex: 1 }, weightFill: { height: 7, backgroundColor: blue, borderRadius: 10 }, button: { minHeight: 50, borderRadius: 14, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, marginTop: 12 }, buttonText: { color: "white", fontWeight: "800", fontSize: 14 }, secondaryButton: { minHeight: 48, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, marginTop: 10 }, demoLabel: { textAlign: "center", fontSize: 10, marginTop: 10 }, banner: { flexDirection: "row", alignItems: "center", borderRadius: 13, borderWidth: 1, padding: 12, marginHorizontal: 18, marginTop: 10 }, rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, pill: { borderRadius: 9, paddingHorizontal: 8, paddingVertical: 5 }, map: { height: 230, borderRadius: 22, borderWidth: 1, overflow: "hidden", marginVertical: 14, position: "relative" }, mapRoadA: { position: "absolute", width: "140%", height: 22, backgroundColor: "#FFFFFF", transform: [{ rotate: "25deg" }], top: 85, left: -60 }, mapRoadB: { position: "absolute", width: "130%", height: 14, backgroundColor: "#FFFFFF", transform: [{ rotate: "-38deg" }], top: 135, left: -30 }, mapRoadC: { position: "absolute", width: "130%", height: 10, backgroundColor: "#FFFFFF", transform: [{ rotate: "8deg" }], top: 32, left: -15 }, mapRoute: { position: "absolute", top: 30, left: "46%", gap: 2, transform: [{ rotate: "12deg" }] }, routeSegment: { width: 9, height: 28, borderRadius: 8 }, mapPinStart: { position: "absolute", left: 34, bottom: 28, backgroundColor: "white", borderRadius: 20, padding: 7, color: blue }, mapPinEnd: { position: "absolute", right: 38, top: 27, backgroundColor: "white", borderRadius: 20, padding: 7 }, mapLegend: { position: "absolute", bottom: 10, left: 10, borderRadius: 8, padding: 6 }, routeCard: { borderRadius: 18, padding: 15, marginBottom: 10 }, score: { fontSize: 27, fontWeight: "900" }, metricRow: { flexDirection: "row", justifyContent: "space-between", marginVertical: 13 }, metric: { flex: 1 }, metricValue: { fontWeight: "800", fontSize: 15 }, navBanner: { backgroundColor: teal, borderRadius: 18, padding: 16, flexDirection: "row", alignItems: "center", gap: 14 }, navArrow: { color: "white", fontSize: 38 }, navKicker: { color: "#D7FFF4", fontSize: 10, fontWeight: "800" }, navText: { color: "white", fontSize: 18, fontWeight: "800" }, navSub: { color: "#D7FFF4", fontSize: 12 }, filter: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9 }, poiCard: { borderWidth: 1, borderRadius: 17, padding: 12, flexDirection: "row", alignItems: "center", gap: 10, marginVertical: 5 }, poiImage: { width: 55, height: 55, borderRadius: 13, backgroundColor: "#E5F2FF", alignItems: "center", justifyContent: "center" }, addButton: { borderWidth: 1, borderColor: "#B9D9F7", borderRadius: 9, paddingHorizontal: 9, paddingVertical: 7 }, issueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginVertical: 10 }, issueTile: { width: "30%", minHeight: 82, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center", gap: 6 }, textArea: { minHeight: 100, borderWidth: 1, borderRadius: 14, padding: 14, textAlignVertical: "top", marginTop: 12 }, listRow: { minHeight: 58, borderRadius: 15, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 5 }, profileHero: { alignItems: "center", paddingVertical: 10 }, avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#E5F2FF", alignItems: "center", justifyContent: "center" }, bottomNav: { position: "absolute", bottom: 0, left: 0, right: 0, height: 72, borderTopWidth: 1, flexDirection: "row", justifyContent: "space-around", paddingTop: 10 }, navItem: { alignItems: "center", gap: 2, flex: 1 }, centerState: { flex: 1, alignItems: "center", justifyContent: "center", padding: 34 }, modalBackdrop: { flex: 1, backgroundColor: "rgba(3, 23, 46, .55)", justifyContent: "center", padding: 22 }, modalCard: { borderRadius: 24, padding: 24 } });
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  app: { flex: 1 },
+  onboarding: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 22,
+    paddingTop: 28,
+  },
+  logoMark: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: "#E5F2FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoPin: { color: blue, fontSize: 36 },
+  brand: { fontSize: 28, fontWeight: "800", marginTop: 12 },
+  tagline: { fontSize: 12, marginTop: 4 },
+  illustration: {
+    width: "100%",
+    minHeight: 330,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 26,
+    marginTop: 42,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    marginTop: 22,
+    textAlign: "center",
+  },
+  body: { fontSize: 14, lineHeight: 21, marginBottom: 10 },
+  dots: { flexDirection: "row", gap: 6, marginVertical: 24 },
+  dot: { width: 7, height: 7, borderRadius: 5 },
+  linkButton: { padding: 12 },
+  link: { fontWeight: "700" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  headerBrand: { fontSize: 18, fontWeight: "800" },
+  headerSub: { fontSize: 10 },
+  emergencyMini: {
+    width: 42,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#E5484D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emergencyMiniText: { color: "white", fontSize: 11, fontWeight: "900" },
+  scroll: { padding: 18, paddingBottom: 100 },
+  kicker: { fontSize: 11, fontWeight: "900", letterSpacing: 1, marginTop: 4 },
+  title: { fontSize: 27, fontWeight: "800", marginBottom: 5 },
+  card: { borderRadius: 18, borderWidth: 1, padding: 16, marginVertical: 8 },
+  field: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
+  fieldDivider: { height: 1, marginVertical: 4 },
+  fieldInput: { fontSize: 15, fontWeight: "700", paddingVertical: 2 },
+  helper: { fontSize: 11, lineHeight: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: "800" },
+  horizontal: { gap: 10, paddingBottom: 4 },
+  choiceCard: {
+    width: 140,
+    minHeight: 120,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  choiceTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 12,
+    marginBottom: 3,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+  },
+  advanced: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+  },
+  weightRow: { flexDirection: "row", alignItems: "center", marginVertical: 7 },
+  weightTrack: {
+    height: 7,
+    backgroundColor: "#E6EDF5",
+    borderRadius: 10,
+    flex: 1,
+  },
+  weightFill: { height: 7, backgroundColor: blue, borderRadius: 10 },
+  button: {
+    minHeight: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    marginTop: 12,
+  },
+  buttonText: { color: "white", fontWeight: "800", fontSize: 14 },
+  secondaryButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    marginTop: 10,
+  },
+  demoLabel: { textAlign: "center", fontSize: 10, marginTop: 10 },
+  banner: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 13,
+    borderWidth: 1,
+    padding: 12,
+    marginHorizontal: 18,
+    marginTop: 10,
+  },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pill: { borderRadius: 9, paddingHorizontal: 8, paddingVertical: 5 },
+  map: {
+    height: 230,
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: "hidden",
+    marginVertical: 14,
+    position: "relative",
+  },
+  mapRoadA: {
+    position: "absolute",
+    width: "140%",
+    height: 22,
+    backgroundColor: "#FFFFFF",
+    transform: [{ rotate: "25deg" }],
+    top: 85,
+    left: -60,
+  },
+  mapRoadB: {
+    position: "absolute",
+    width: "130%",
+    height: 14,
+    backgroundColor: "#FFFFFF",
+    transform: [{ rotate: "-38deg" }],
+    top: 135,
+    left: -30,
+  },
+  mapRoadC: {
+    position: "absolute",
+    width: "130%",
+    height: 10,
+    backgroundColor: "#FFFFFF",
+    transform: [{ rotate: "8deg" }],
+    top: 32,
+    left: -15,
+  },
+  mapRoute: {
+    position: "absolute",
+    top: 30,
+    left: "46%",
+    gap: 2,
+    transform: [{ rotate: "12deg" }],
+  },
+  routeSegment: { width: 9, height: 28, borderRadius: 8 },
+  mapPinStart: {
+    position: "absolute",
+    left: 34,
+    bottom: 28,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 7,
+    color: blue,
+  },
+  mapPinEnd: {
+    position: "absolute",
+    right: 38,
+    top: 27,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 7,
+  },
+  mapLegend: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    borderRadius: 8,
+    padding: 6,
+  },
+  routeCard: { borderRadius: 18, padding: 15, marginBottom: 10 },
+  score: { fontSize: 27, fontWeight: "900" },
+  metricRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 13,
+  },
+  metric: { flex: 1 },
+  metricValue: { fontWeight: "800", fontSize: 15 },
+  navBanner: {
+    backgroundColor: teal,
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  navArrow: { color: "white", fontSize: 38 },
+  navKicker: { color: "#D7FFF4", fontSize: 10, fontWeight: "800" },
+  navText: { color: "white", fontSize: 18, fontWeight: "800" },
+  navSub: { color: "#D7FFF4", fontSize: 12 },
+  filter: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  poiCard: {
+    borderWidth: 1,
+    borderRadius: 17,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 5,
+  },
+  poiImage: {
+    width: 55,
+    height: 55,
+    borderRadius: 13,
+    backgroundColor: "#E5F2FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButton: {
+    borderWidth: 1,
+    borderColor: "#B9D9F7",
+    borderRadius: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  issueGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginVertical: 10,
+  },
+  issueTile: {
+    width: "30%",
+    minHeight: 82,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  textArea: {
+    minHeight: 100,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    textAlignVertical: "top",
+    marginTop: 12,
+  },
+  listRow: {
+    minHeight: 58,
+    borderRadius: 15,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginVertical: 5,
+  },
+  profileHero: { alignItems: "center", paddingVertical: 10 },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#E5F2FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bottomNav: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 72,
+    borderTopWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingTop: 10,
+  },
+  navItem: { alignItems: "center", gap: 2, flex: 1 },
+  centerState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 34,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(3, 23, 46, .55)",
+    justifyContent: "center",
+    padding: 22,
+  },
+  modalCard: { borderRadius: 24, padding: 24 },
+});
